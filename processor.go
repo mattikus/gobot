@@ -13,7 +13,10 @@ type processor struct {
 }
 
 func (pp *processor) Process(ctx context.Context, intent snowman.Intent) (snowman.Msg, error) {
-	slackMsg := intent.Msg.Attribs["slack_msg"].(slack.Msg)
+	slackMsg, ok := intent.Msg.Attribs["slack_msg"].(slack.Msg)
+	if !ok {
+		return snowman.Msg{}, fmt.Errorf("unable to parse message")
+	}
 	slackMsg.Timestamp = ""
 	intent.Msg.Attribs["slack_msg"] = slackMsg
 

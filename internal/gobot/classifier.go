@@ -11,6 +11,9 @@ import (
 	snowslack "github.com/spy16/snowman/slack"
 )
 
+// Classifier is a type which wraps the snowman.RegexClassifier and extends it for use within Slack,
+// adding features to understand how to reply to users. The main reason it exists is to allow
+// reading every message and ignoring those which are not directly intended for the bot.
 type Classifier struct {
 	Slack     *snowslack.Slack
 	Logger    snowman.Logger

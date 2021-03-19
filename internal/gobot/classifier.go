@@ -1,4 +1,4 @@
-package main
+package gobot
 
 import (
 	"context"
@@ -11,8 +11,10 @@ import (
 	snowslack "github.com/spy16/snowman/slack"
 )
 
-type classifier struct {
-	slack     *snowslack.Slack
+type Classifier struct {
+	Slack     *snowslack.Slack
+	Logger    snowman.Logger
+
 	selfRegex *regexp.Regexp
 	snowman.RegexClassifier
 }
@@ -23,13 +25,13 @@ var selfPatternTmpl = `^(?i)(%s|@?%s)[,:\s]*(.*)$`
 // name. It also returns a boolean value indicating whether a match was found.
 // 
 // On first use, it will compile the necessary regular expression pattern and cache it.
-func (c *classifier) MatchSelf(msg string) (string, bool) {
+func (c *Classifier) MatchSelf(msg string) (string, bool) {
 	// This kinda sucks, but we have to wait until here to initialize the regex because we
 	// don't know our bot details until after we've connected.
 	if c.selfRegex == nil {
-		self := c.slack.Self()
+		self := c.Slack.Self()
 		selfPat := fmt.Sprintf(selfPatternTmpl, snowslack.AddressUser(self.ID, ""), self.Name)
-		logger.Infof("Self pattern: %q", selfPat)
+		c.Logger.Infof("Self pattern: %q", selfPat)
 		c.selfRegex = regexp.MustCompile(selfPat)
 	}
 	if matches := c.selfRegex.FindStringSubmatch(msg); matches != nil {
@@ -41,7 +43,7 @@ func (c *classifier) MatchSelf(msg string) (string, bool) {
 // Classify wraps the standard Classify method from snowman.RegexClassifier and adds in
 // functionality related to determining whether a message was sent directly to the bot via
 // slack.
-func (c *classifier) Classify(ctx context.Context, msg snowman.Msg) (snowman.Intent, error) {
+func (c *Classifier) Classify(ctx context.Context, msg snowman.Msg) (snowman.Intent, error) {
 	var slackMsg slack.Msg
 	if smsg, ok := msg.Attribs["slack_msg"]; ok {
 		slackMsg = smsg.(slack.Msg)
@@ -55,4 +57,3 @@ func (c *classifier) Classify(ctx context.Context, msg snowman.Msg) (snowman.Int
 	}
 	return snowman.Intent{ID: snowman.SysIntentUnknown}, nil
 }
-

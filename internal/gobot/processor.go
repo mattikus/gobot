@@ -1,4 +1,4 @@
-package main
+package gobot
 
 import (
 	"context"
@@ -8,11 +8,11 @@ import (
 	"github.com/spy16/snowman"
 )
 
-type processor struct {
+type Processor struct {
 	actions map[string]snowman.ProcessorFunc
 }
 
-func (pp *processor) Process(ctx context.Context, intent snowman.Intent) (snowman.Msg, error) {
+func (pp *Processor) Process(ctx context.Context, intent snowman.Intent) (snowman.Msg, error) {
 	slackMsg, ok := intent.Msg.Attribs["slack_msg"].(slack.Msg)
 	if !ok {
 		return snowman.Msg{}, fmt.Errorf("unable to parse message")
@@ -26,7 +26,7 @@ func (pp *processor) Process(ctx context.Context, intent snowman.Intent) (snowma
 	return snowman.Msg{}, nil
 }
 
-func (pp *processor) Register(intentID string, fun snowman.ProcessorFunc) error {
+func (pp *Processor) Register(intentID string, fun snowman.ProcessorFunc) error {
 	if pp == nil || pp.actions == nil {
 		return fmt.Errorf("unable to register")
 	}
@@ -37,8 +37,8 @@ func (pp *processor) Register(intentID string, fun snowman.ProcessorFunc) error 
 	return nil
 }
 
-func NewProcessor() *processor {
-	pp := &processor{}
+func NewProcessor() *Processor {
+	pp := &Processor{}
 	pp.actions = make(map[string]snowman.ProcessorFunc)
 	return pp
 }

@@ -1,4 +1,4 @@
-package main
+package gobot
 
 import (
 	"context"
@@ -14,6 +14,9 @@ import (
 
 //go:embed cah-cards-compact.json
 var rawJSON []byte
+
+// cards is a global which holds the embedded cards data after initialization.
+var cardData Cards
 
 type BlackCard struct {
 	Text string
@@ -38,15 +41,6 @@ func (c *Cards) BlackCard() *BlackCard {
 	return c.Black[rand.Intn(len(c.Black))]
 }
 
-// cards is a global which holds the embedded cards data after initialization.
-var cardData Cards
-
-func init() {
-	if err := json.Unmarshal(rawJSON, &cardData); err != nil {
-		logger.Fatalf("Error unmarshalling JSON cards data: %v", err)
-	}
-}
-
 func fetchBlack(_ context.Context, intent snowman.Intent) (snowman.Msg, error) {
 	card := cardData.BlackCard()
 	msg := card.Text
@@ -68,12 +62,16 @@ func fetchWhite(_ context.Context, intent snowman.Intent) (snowman.Msg, error) {
 	}
 
 	return snowman.Msg{
-		Body: strings.Join(cardData.WhiteCard(count), "\n"),
+		Body:    strings.Join(cardData.WhiteCard(count), "\n"),
 		Attribs: intent.Msg.Attribs,
 	}, nil
 }
 
-func registerCards(c *classifier, pp *processor) error {
+func RegisterCards(c *Classifier, pp *Processor) error {
+	if err := json.Unmarshal(rawJSON, &cardData); err != nil {
+		return fmt.Errorf("error unmarshalling JSON cards data: %w", err)
+	}
+
 	if err := c.Register(`q(?:uestion)? card(?: me)?`, "cards.black"); err != nil { return err }
 	if err := pp.Register("cards.black", fetchBlack); err != nil { return err }
 

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/mattikus/gobot/internal/gobot"
+	"github.com/mattikus/gobot/internal/modules"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spy16/snowman"
@@ -25,17 +26,17 @@ func main() {
 
 	name := os.Getenv("BOT_NAME")
 	if name == "" {
-		name = "lester"
+		name = "gobot"
 	}
 
 	token := os.Getenv("API_TOKEN")
 	slackUI := snowslack.New(token, logger)
 
-	rc := &gobot.Classifier{Slack: slackUI, Logger: logger}
+	rc := gobot.NewClassifier(slackUI, logger)
 	proc := gobot.NewProcessor()
 
-	if err := gobot.RegisterCards(rc, proc); err != nil {
-		logger.Fatalf("Error registering cards.go: %v", err)
+	if err := modules.Register(rc, proc); err != nil {
+		logger.Fatalf("Error registering modules: %v", err)
 	}
 
 	if err := snowman.Run(ctx,

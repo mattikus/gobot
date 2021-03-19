@@ -1,4 +1,4 @@
-package gobot
+package modules
 
 import (
 	"context"
@@ -67,18 +67,14 @@ func fetchWhite(_ context.Context, intent snowman.Intent) (snowman.Msg, error) {
 	}, nil
 }
 
-// RegisterCards takes a gobot Classifier and Processor and adds matchers for functionality within
-// this module is added to an instance of gobot.
-func RegisterCards(c *Classifier, pp *Processor) error {
+func init() {
 	if err := json.Unmarshal(rawJSON, &cardData); err != nil {
-		return fmt.Errorf("error unmarshalling JSON cards data: %w", err)
+		panic(fmt.Errorf("error unmarshalling JSON cards data: %w", err))
 	}
 
-	if err := c.Register(`q(?:uestion)? card(?: me)?`, "cards.black"); err != nil { return err }
-	if err := pp.Register("cards.black", fetchBlack); err != nil { return err }
+	intents[`q(?:uestion)? card(?: me)?`] = "cards.black"
+	intents[`card(?: me)? (?P<count>\d*)?`] = "cards.white"
 
-	if err := c.Register(`card(?: me)? (?P<count>\d*)?`, "cards.white"); err != nil { return err }
-	if err := pp.Register("cards.white", fetchWhite); err != nil { return err }
-
-	return nil
+	actions["cards.white"] = fetchWhite
+	actions["cards.black"] = fetchBlack
 }

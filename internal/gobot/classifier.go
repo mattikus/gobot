@@ -15,8 +15,8 @@ import (
 // adding features to understand how to reply to users. The main reason it exists is to allow
 // reading every message and ignoring those which are not directly intended for the bot.
 type Classifier struct {
-	Slack     *snowslack.Slack
-	Logger    snowman.Logger
+	slack     *snowslack.Slack
+	logger    snowman.Logger
 
 	selfRegex *regexp.Regexp
 	snowman.RegexClassifier
@@ -32,9 +32,9 @@ func (c *Classifier) MatchSelf(msg string) (string, bool) {
 	// This kinda sucks, but we have to wait until here to initialize the regex because we
 	// don't know our bot details until after we've connected.
 	if c.selfRegex == nil {
-		self := c.Slack.Self()
+		self := c.slack.Self()
 		selfPat := fmt.Sprintf(selfPatternTmpl, snowslack.AddressUser(self.ID, ""), self.Name)
-		c.Logger.Infof("Self pattern: %q", selfPat)
+		c.logger.Infof("Self pattern: %q", selfPat)
 		c.selfRegex = regexp.MustCompile(selfPat)
 	}
 	if matches := c.selfRegex.FindStringSubmatch(msg); matches != nil {
@@ -59,4 +59,13 @@ func (c *Classifier) Classify(ctx context.Context, msg snowman.Msg) (snowman.Int
 		return c.RegexClassifier.Classify(ctx, msg)
 	}
 	return snowman.Intent{ID: snowman.SysIntentUnknown}, nil
+}
+
+func NewClassifier(slackptr *snowslack.Slack, logger snowman.Logger) *Classifier {
+	return &Classifier{
+		slack:           slackptr,
+		logger:          logger,
+		selfRegex:       nil,
+		RegexClassifier: snowman.RegexClassifier{},
+	}
 }

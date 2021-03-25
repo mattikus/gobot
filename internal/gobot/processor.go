@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/slack-go/slack"
 	"github.com/spy16/snowman"
 )
 
@@ -16,13 +15,6 @@ type Processor struct {
 
 // Process implements the Process method for a snowman.Processor interface.
 func (pp *Processor) Process(ctx context.Context, intent snowman.Intent) (snowman.Msg, error) {
-	slackMsg, ok := intent.Msg.Attribs["slack_msg"].(slack.Msg)
-	if !ok {
-		return snowman.Msg{}, fmt.Errorf("unable to parse message")
-	}
-	slackMsg.Timestamp = ""
-	intent.Msg.Attribs["slack_msg"] = slackMsg
-
 	if action, ok := pp.actions[intent.ID]; ok {
 		return action(ctx, intent)
 	}
@@ -48,4 +40,3 @@ func NewProcessor() *Processor {
 	pp.actions = make(map[string]snowman.ProcessorFunc)
 	return pp
 }
-

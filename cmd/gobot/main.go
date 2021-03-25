@@ -9,20 +9,29 @@ import (
 	"time"
 
 	"github.com/mattikus/gobot/internal/gobot"
+	"github.com/mattikus/gobot/internal/gobot/slack"
 	"github.com/mattikus/gobot/internal/modules"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spy16/snowman"
-	snowslack "github.com/spy16/snowman/slack"
 )
 
-
-var logger *logrus.Logger = logrus.New()
+var log *logrus.Logger = &logrus.Logger{
+	Out: os.Stderr,
+	Formatter: &logrus.JSONFormatter{
+		FieldMap: logrus.FieldMap{
+			logrus.FieldKeyLevel: "severity",
+			logrus.FieldKeyMsg:   "message",
+		},
+	},
+	Level: logrus.DebugLevel,
+	Hooks: make(logrus.LevelHooks),
+}
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
 	ctx, cancel := context.WithCancel(context.Background())
-	go cancelOnInterrupt(cancel, logger)
+	go cancelOnInterrupt(cancel, log)
 
 	name := os.Getenv("BOT_NAME")
 	if name == "" {
@@ -30,23 +39,25 @@ func main() {
 	}
 
 	token := os.Getenv("API_TOKEN")
-	slackUI := snowslack.New(token, logger)
+	secret := os.Getenv("SIGNING_SECRET")
+	port := os.Getenv("PORT")
+	slackUI := slack.New(token, secret, port, log)
 
-	rc := gobot.NewClassifier(slackUI, logger)
+	rc := &snowman.RegexClassifier{}
 	proc := gobot.NewProcessor()
 
 	if err := modules.Register(rc, proc); err != nil {
-		logger.Fatalf("Error registering modules: %v", err)
+		log.Fatalf("Error registering modules: %v", err)
 	}
 
 	if err := snowman.Run(ctx,
 		snowman.WithName(name),
-		snowman.WithLogger(logger),
+		snowman.WithLogger(log),
 		snowman.WithUI(slackUI),
 		snowman.WithClassifier(rc),
 		snowman.WithProcessor(proc),
 	); err != nil {
-		logger.Fatalf("bot exited with error: %v", err)
+		log.Fatalf("bot exited with error: %v", err)
 	}
 
 }

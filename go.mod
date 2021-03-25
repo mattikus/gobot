@@ -9,5 +9,3 @@ require (
 	github.com/spy16/snowman v0.1.0
 	github.com/stretchr/testify v1.4.0 // indirect
 )
-
-replace github.com/spy16/snowman => github.com/mattikus/snowman v0.1.1-0.20210318074855-bdab3a524a46

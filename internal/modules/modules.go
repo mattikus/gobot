@@ -10,7 +10,7 @@ var actions = make(map[string]snowman.ProcessorFunc)
 var intents = make(map[string]string)
 
 // Register injects all of the functionality defined within modules.
-func Register(c *gobot.Classifier, pp *gobot.Processor) error {
+func Register(c *snowman.RegexClassifier, pp *gobot.Processor) error {
 	for regex, intent := range intents {
 		if err := c.Register(regex, intent); err != nil {
 			return err

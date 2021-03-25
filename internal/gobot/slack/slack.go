@@ -123,14 +123,14 @@ func (sl *Slack) listenForEvents(ctx context.Context, out chan<- snowman.Msg) {
 			w.Write([]byte(r.Challenge))
 		case slackevents.CallbackEvent:
 			innerEvent := eventsAPIEvent.InnerEvent
-			sl.Infof("event: %s [data=%#v]", innerEvent.Type, innerEvent.Data)
+			sl.Debugf("event: %s [data=%#v]", innerEvent.Type, innerEvent.Data)
 			switch ev := innerEvent.Data.(type) {
 			case *slackevents.MessageEvent:
 				w.WriteHeader(http.StatusOK)
 				sl.handleMessage(ctx, ev, out)
 				return
 			default:
-				sl.Infof("ignoring unknown event (type=%v)", reflect.TypeOf(ev))
+				sl.Debugf("ignoring unknown event (type=%v)", reflect.TypeOf(ev))
 				w.WriteHeader(http.StatusOK)
 				return
 			}
@@ -143,7 +143,7 @@ func (sl *Slack) listenForEvents(ctx context.Context, out chan<- snowman.Msg) {
 func (sl *Slack) handleMessage(ctx context.Context, ev *slackevents.MessageEvent, out chan<- snowman.Msg) {
 	if ev.ChannelType != "im" {
 		if !sl.stripSelf(ev) {
-			sl.Infof("not in an im but did not strip leading mention, ignoring message")
+			sl.Debugf("not in an im but did not strip leading mention, ignoring message")
 			return
 		}
 	}

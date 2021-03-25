@@ -24,7 +24,7 @@ var log *logrus.Logger = &logrus.Logger{
 			logrus.FieldKeyMsg:   "message",
 		},
 	},
-	Level: logrus.DebugLevel,
+	Level: logrus.InfoLevel,
 	Hooks: make(logrus.LevelHooks),
 }
 

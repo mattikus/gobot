@@ -9,12 +9,16 @@ import (
 	"io/ioutil"
 	"net/http"
 	"reflect"
-	"strings"
+	"regexp"
 
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
 	"github.com/spy16/snowman"
 )
+
+// regexTmpl is a string which defines a regex used by stripSelf to match messages addresssed
+// directly to us and then remove the bot's name.
+const regexTmpl = `(?i)^(%v|%v|%v)[:,]?\s+(.*)$`
 
 func New(token, signingSecret, port string, logger logger) *Slack {
 	if logger == nil {
@@ -35,6 +39,7 @@ type Slack struct {
 	ctx           context.Context
 	cancel        func()
 	self          *slack.Bot
+	selfRegex     *regexp.Regexp
 	client        *slack.Client
 	port          string
 	signingSecret string
@@ -56,6 +61,19 @@ func (sl *Slack) Listen(ctx context.Context) (<-chan snowman.Msg, error) {
 		return nil, err
 	}
 	sl.self = bot
+	if err != nil {
+		return nil, err
+	}
+	prefixes := []interface{}{
+		AddressUser(sl.self.UserID, ""),
+		AddressUser(sl.self.UserID, sl.self.Name),
+		sl.self.Name,
+	}
+	re, err := regexp.Compile(fmt.Sprintf(regexTmpl, prefixes...))
+	if err != nil {
+		return nil, err
+	}
+	sl.selfRegex = re
 	go sl.listenForEvents(ctx, out)
 
 	return out, nil
@@ -178,26 +196,16 @@ func (sl *Slack) handleMessage(ctx context.Context, ev *slackevents.MessageEvent
 }
 
 func (sl *Slack) stripSelf(ev *slackevents.MessageEvent) bool {
-	nick := strings.ToLower(sl.self.Name)
-	var prefixes = []string{
-		AddressUser(sl.self.UserID, "") + ":",
-		AddressUser(sl.self.UserID, "") + ",",
-		AddressUser(sl.self.UserID, ""),
-		AddressUser(sl.self.UserID, sl.self.Name) + ":",
-		AddressUser(sl.self.UserID, sl.self.Name) + ",",
-		AddressUser(sl.self.UserID, sl.self.Name),
-		nick + ":",
-		nick + ",",
-		nick,
+	if sl.selfRegex == nil {
+		sl.Errorf("unable to find self regex to match with")
+		return false
 	}
-	for _, prefix := range prefixes {
-		if strings.HasPrefix(ev.Text, prefix) {
-			msgText := strings.TrimSpace(strings.Replace(ev.Text, prefix, "", -1))
-			ev.Text = msgText
-			return true
-		}
+	matches := sl.selfRegex.FindStringSubmatch(ev.Text)
+	if matches == nil || len(matches) < 3 {
+		return false
 	}
-	return false
+	ev.Text = matches[2]
+	return true
 }
 
 // SendMessage sends the text as message to the given channel on behalf of

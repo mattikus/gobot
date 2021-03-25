@@ -34,7 +34,7 @@ type Slack struct {
 
 	ctx           context.Context
 	cancel        func()
-	self          *slack.User
+	self          *slack.Bot
 	client        *slack.Client
 	port          string
 	signingSecret string
@@ -47,6 +47,15 @@ func (sl *Slack) Listen(ctx context.Context) (<-chan snowman.Msg, error) {
 	defer sl.cancel()
 
 	out := make(chan snowman.Msg)
+	resp, err := sl.client.AuthTest()
+	if err != nil {
+		return nil, err
+	}
+	bot, err := sl.client.GetBotInfo(resp.BotID)
+	if err != nil {
+		return nil, err
+	}
+	sl.self = bot
 	go sl.listenForEvents(ctx, out)
 
 	return out, nil
@@ -113,16 +122,6 @@ func (sl *Slack) listenForEvents(ctx context.Context, out chan<- snowman.Msg) {
 			w.Header().Set("Content-Type", "text")
 			w.Write([]byte(r.Challenge))
 		case slackevents.CallbackEvent:
-			// If we don't know who we are yet, use data from the first event to determine that.
-			if sl.self == nil {
-				outerEvent := eventsAPIEvent.Data.(*slackevents.EventsAPICallbackEvent)
-				id := outerEvent.AuthedUsers[0]
-				self, err := sl.client.GetUserInfo(id)
-				if err != nil {
-					sl.Errorf("unable to call GetUserInfo() on self for %q: %v", id, err)
-				}
-				sl.self = self
-			}
 			innerEvent := eventsAPIEvent.InnerEvent
 			sl.Infof("event: %s [data=%#v]", innerEvent.Type, innerEvent.Data)
 			switch ev := innerEvent.Data.(type) {
@@ -180,12 +179,12 @@ func (sl *Slack) handleMessage(ctx context.Context, ev *slackevents.MessageEvent
 
 func (sl *Slack) stripSelf(ev *slackevents.MessageEvent) bool {
 	var prefixes = []string{
-		AddressUser(sl.self.ID, "") + ":",
-		AddressUser(sl.self.ID, "") + ",",
-		AddressUser(sl.self.ID, ""),
-		AddressUser(sl.self.ID, sl.self.Name) + ":",
-		AddressUser(sl.self.ID, sl.self.Name) + ",",
-		AddressUser(sl.self.ID, sl.self.Name),
+		AddressUser(sl.self.UserID, "") + ":",
+		AddressUser(sl.self.UserID, "") + ",",
+		AddressUser(sl.self.UserID, ""),
+		AddressUser(sl.self.UserID, sl.self.Name) + ":",
+		AddressUser(sl.self.UserID, sl.self.Name) + ",",
+		AddressUser(sl.self.UserID, sl.self.Name),
 		sl.self.Name + ":",
 		sl.self.Name + ",",
 		sl.self.Name,
@@ -216,7 +215,7 @@ func (sl *Slack) SendMessage(text string, responseTo *slackevents.MessageEvent) 
 }
 
 // Self returns details about the currently connected bot user.
-func (sl *Slack) Self() *slack.User { return sl.self }
+func (sl *Slack) Self() *slack.Bot { return sl.self }
 
 // Client returns the underlying Slack client instance.
 func (sl *Slack) Client() *slack.Client { return sl.client }

@@ -154,7 +154,7 @@ func (sl *Slack) handleMessage(ctx context.Context, ev *slackevents.MessageEvent
 		return
 	}
 
-	if ev.User == sl.self.ID {
+	if ev.User == sl.self.UserID {
 		return
 	}
 
@@ -178,6 +178,7 @@ func (sl *Slack) handleMessage(ctx context.Context, ev *slackevents.MessageEvent
 }
 
 func (sl *Slack) stripSelf(ev *slackevents.MessageEvent) bool {
+	nick := strings.ToLower(sl.self.Name)
 	var prefixes = []string{
 		AddressUser(sl.self.UserID, "") + ":",
 		AddressUser(sl.self.UserID, "") + ",",
@@ -185,9 +186,9 @@ func (sl *Slack) stripSelf(ev *slackevents.MessageEvent) bool {
 		AddressUser(sl.self.UserID, sl.self.Name) + ":",
 		AddressUser(sl.self.UserID, sl.self.Name) + ",",
 		AddressUser(sl.self.UserID, sl.self.Name),
-		sl.self.Name + ":",
-		sl.self.Name + ",",
-		sl.self.Name,
+		nick + ":",
+		nick + ",",
+		nick,
 	}
 	for _, prefix := range prefixes {
 		if strings.HasPrefix(ev.Text, prefix) {

@@ -106,13 +106,12 @@ func Antisocial(_ context.Context, intent snowman.Intent) (snowman.Msg, error) {
 		return snowman.Msg{}, fmt.Errorf("can't find trigger named %q", trigger)
 	}
 
-	var s string
-	target := intent.Ctx["target"].(string)
-	if target != "" {
+	s := trigger.noTarget
+	target, ok := intent.Ctx["target"].(string)
+	if ok && target != "" {
 		s = trigger.withTarget
-	} else {
-		s = trigger.noTarget
 	}
+
 	tmpl, err := template.New("").Parse(s)
 	if err != nil {
 		return snowman.Msg{}, fmt.Errorf("unable to parse template: %w", err)
@@ -129,6 +128,7 @@ func Antisocial(_ context.Context, intent snowman.Intent) (snowman.Msg, error) {
 		Attribs: intent.Msg.Attribs,
 	}, nil
 }
+
 func init() {
 	Hear(triggerExp(), "antisocial", Antisocial)
 }

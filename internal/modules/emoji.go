@@ -57,11 +57,8 @@ func (e emojiList) Spin(_ context.Context, intent snowman.Intent) (snowman.Msg, 
 }
 
 func init() {
-	intents[`emoji(?: me)?$`] = "emoji.random"
-	actions["emoji.random"] = emoji.Random
-
-	intents[`emoji spin(?: me)?`] = "emoji.spin"
-	actions["emoji.spin"] = emoji.Spin
+	Reply(`emoji(?: me)?$`, "emoji.random", emoji.Random)
+	Reply(`emoji spin(?: me)?`, "emoji.spin", emoji.Spin)
 }
 
 // emoji is an instance of an emojiList with a common set of emoji used in most Slacks.

@@ -72,9 +72,6 @@ func init() {
 		panic(fmt.Errorf("error unmarshalling JSON cards data: %w", err))
 	}
 
-	intents[`q(?:uestion)? card(?: me)?`] = "cards.black"
-	intents[`card(?: me)? (?P<count>\d*)?`] = "cards.white"
-
-	actions["cards.white"] = fetchWhite
-	actions["cards.black"] = fetchBlack
+	Reply(`q(?:uestion)? card(?: me)?`, "cards.black", fetchBlack)
+	Reply(`card(?: me)? (?P<count>\d*)?`, "cards.white", fetchWhite)
 }

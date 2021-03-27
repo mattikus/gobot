@@ -1,4 +1,4 @@
-// modules is a package which provides the all of the bot functionality.
+// Package modules is a package which provides the all of the bot functionality.
 package modules
 
 import (
@@ -6,18 +6,39 @@ import (
 	"github.com/spy16/snowman"
 )
 
-var actions = make(map[string]snowman.ProcessorFunc)
-var intents = make(map[string]string)
+type module struct {
+	id    string
+	regex string
+	fun   snowman.ProcessorFunc
+}
+
+var replyModules []module
+
+func Reply(re, id string, fun snowman.ProcessorFunc) {
+	replyModules = append(replyModules, module{id, re, fun})
+}
+
+var hearModules []module
+
+func Hear(re, id string, fun snowman.ProcessorFunc) {
+	hearModules = append(hearModules, module{id, re, fun})
+}
 
 // Register injects all of the functionality defined within modules.
-func Register(c *snowman.RegexClassifier, pp *gobot.Processor) error {
-	for regex, intent := range intents {
-		if err := c.Register(regex, intent); err != nil {
+func Register(c *gobot.Classifier, pp *gobot.Processor) error {
+	for _, i := range hearModules {
+		if err := c.Hear(i.regex, i.id); err != nil {
+			return err
+		}
+		if err := pp.Register(i.id, i.fun); err != nil {
 			return err
 		}
 	}
-	for intent, fun := range actions {
-		if err := pp.Register(intent, fun); err != nil {
+	for _, i := range replyModules {
+		if err := c.Reply(i.regex, i.id); err != nil {
+			return err
+		}
+		if err := pp.Register(i.id, i.fun); err != nil {
 			return err
 		}
 	}

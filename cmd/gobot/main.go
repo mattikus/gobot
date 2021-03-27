@@ -43,10 +43,10 @@ func main() {
 	port := os.Getenv("PORT")
 	slackUI := slack.New(token, secret, port, log)
 
-	rc := &snowman.RegexClassifier{}
+	c := gobot.NewClassifier(slackUI)
 	proc := gobot.NewProcessor()
 
-	if err := modules.Register(rc, proc); err != nil {
+	if err := modules.Register(c, proc); err != nil {
 		log.Fatalf("Error registering modules: %v", err)
 	}
 
@@ -54,7 +54,7 @@ func main() {
 		snowman.WithName(name),
 		snowman.WithLogger(log),
 		snowman.WithUI(slackUI),
-		snowman.WithClassifier(rc),
+		snowman.WithClassifier(c),
 		snowman.WithProcessor(proc),
 	); err != nil {
 		log.Fatalf("bot exited with error: %v", err)

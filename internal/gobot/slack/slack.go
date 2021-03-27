@@ -18,7 +18,7 @@ import (
 
 // regexTmpl is a string which defines a regex used by stripSelf to match messages addresssed
 // directly to us and then remove the bot's name.
-const regexTmpl = `(?i)^(%v|%v|%v)[:,]?\s+(.*)$`
+const regexTmpl = `(?i)^(?:(?P<self>%v|%v|%v)[:,]?)?\s*(?P<text>.*)$`
 
 func New(token, signingSecret, port string, logger logger) *Slack {
 	if logger == nil {
@@ -39,7 +39,7 @@ type Slack struct {
 	ctx           context.Context
 	cancel        func()
 	self          *slack.Bot
-	selfRegex     *regexp.Regexp
+	SelfRegex     *regexp.Regexp
 	client        *slack.Client
 	port          string
 	signingSecret string
@@ -73,7 +73,7 @@ func (sl *Slack) Listen(ctx context.Context) (<-chan snowman.Msg, error) {
 	if err != nil {
 		return nil, err
 	}
-	sl.selfRegex = re
+	sl.SelfRegex = re
 	go sl.listenForEvents(ctx, out)
 
 	return out, nil
@@ -159,13 +159,6 @@ func (sl *Slack) listenForEvents(ctx context.Context, out chan<- snowman.Msg) {
 }
 
 func (sl *Slack) handleMessage(ctx context.Context, ev *slackevents.MessageEvent, out chan<- snowman.Msg) {
-	if ev.ChannelType != "im" {
-		if !sl.stripSelf(ev) {
-			sl.Debugf("not in an im but did not strip leading mention, ignoring message")
-			return
-		}
-	}
-
 	user, err := sl.client.GetUserInfo(ev.User)
 	if err != nil {
 		sl.Errorf("GetUserInfo(%q): %v", ev.User, err)
@@ -176,6 +169,10 @@ func (sl *Slack) handleMessage(ctx context.Context, ev *slackevents.MessageEvent
 		return
 	}
 
+	// Determine if the message was directly intended for us, stripping any mentions from the message
+	// text.
+	tagged := sl.stripSelf(ev)
+
 	snowMsg := snowman.Msg{
 		From: snowman.User{
 			ID:   user.ID,
@@ -185,6 +182,7 @@ func (sl *Slack) handleMessage(ctx context.Context, ev *slackevents.MessageEvent
 		Attribs: map[string]interface{}{
 			"slack_msg":  ev,
 			"slack_user": *user,
+			"to_bot":     ev.ChannelType == "im" || tagged,
 		},
 	}
 
@@ -196,16 +194,18 @@ func (sl *Slack) handleMessage(ctx context.Context, ev *slackevents.MessageEvent
 }
 
 func (sl *Slack) stripSelf(ev *slackevents.MessageEvent) bool {
-	if sl.selfRegex == nil {
+	if sl.SelfRegex == nil {
 		sl.Errorf("unable to find self regex to match with")
 		return false
 	}
-	matches := sl.selfRegex.FindStringSubmatch(ev.Text)
+
+	matches := sl.SelfRegex.FindStringSubmatch(ev.Text)
 	if matches == nil || len(matches) < 3 {
 		return false
 	}
+
 	ev.Text = matches[2]
-	return true
+	return matches[1] != ""
 }
 
 // SendMessage sends the text as message to the given channel on behalf of

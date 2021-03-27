@@ -93,9 +93,6 @@ func init() {
 		panic(fmt.Errorf("error unmarshalling JSON cards data: %w", err))
 	}
 
-	intents[`(?P<conference>east|west|eastwest)(?: me)?$`] = "eastwest.player"
-	actions["eastwest.player"] = fetchPlayer
-
-	intents[`eastwest(?: me)? url\s*(?P<url>[123])?$`] = "eastwest.url"
-	actions["eastwest.url"] = fetchURL
+	Reply(`(?P<conference>east|west|eastwest)(?: me)?$`, "eastwest.player", fetchPlayer)
+	Reply(`eastwest(?: me)? url\s*(?P<url>[123])?$`, "eastwest.url", fetchURL)
 }

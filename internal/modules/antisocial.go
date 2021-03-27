@@ -95,40 +95,40 @@ func randTrigger() string {
 	return ts[rand.Intn(len(ts))]
 }
 
-func init() {
-	intents[triggerExp()] = "antisocial"
-	actions["antisocial"] = func(_ context.Context, intent snowman.Intent) (snowman.Msg, error) {
-		t := intent.Ctx["trigger"].(string)
-		if t == "rand" {
-			t = randTrigger()
-		}
-
-		trigger, ok := antisocials[t]
-		if !ok {
-			return snowman.Msg{}, fmt.Errorf("can't find trigger named %q", trigger)
-		}
-
-		var s string
-		target := intent.Ctx["target"].(string)
-		if target != "" {
-			s = trigger.withTarget
-		} else {
-			s = trigger.noTarget
-		}
-		tmpl, err := template.New("").Parse(s)
-		if err != nil {
-			return snowman.Msg{}, fmt.Errorf("unable to parse template: %w", err)
-		}
-
-		body := &strings.Builder{}
-		subject := slack.AddressUser(intent.Msg.From.ID, "")
-		tmpl.Execute(body, &struct {
-			Subject string
-			Target  string
-		}{subject, target})
-		return snowman.Msg{
-			Body:    body.String(),
-			Attribs: intent.Msg.Attribs,
-		}, nil
+func Antisocial(_ context.Context, intent snowman.Intent) (snowman.Msg, error) {
+	t := intent.Ctx["trigger"].(string)
+	if t == "rand" {
+		t = randTrigger()
 	}
+
+	trigger, ok := antisocials[t]
+	if !ok {
+		return snowman.Msg{}, fmt.Errorf("can't find trigger named %q", trigger)
+	}
+
+	var s string
+	target := intent.Ctx["target"].(string)
+	if target != "" {
+		s = trigger.withTarget
+	} else {
+		s = trigger.noTarget
+	}
+	tmpl, err := template.New("").Parse(s)
+	if err != nil {
+		return snowman.Msg{}, fmt.Errorf("unable to parse template: %w", err)
+	}
+
+	body := &strings.Builder{}
+	subject := slack.AddressUser(intent.Msg.From.ID, "")
+	tmpl.Execute(body, &struct {
+		Subject string
+		Target  string
+	}{subject, target})
+	return snowman.Msg{
+		Body:    body.String(),
+		Attribs: intent.Msg.Attribs,
+	}, nil
+}
+func init() {
+	Hear(triggerExp(), "antisocial", Antisocial)
 }

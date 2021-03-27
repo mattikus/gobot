@@ -123,10 +123,7 @@ func Antisocial(_ context.Context, intent snowman.Intent) (snowman.Msg, error) {
 		Subject string
 		Target  string
 	}{subject, target})
-	return snowman.Msg{
-		Body:    body.String(),
-		Attribs: intent.Msg.Attribs,
-	}, nil
+	return NewMsg(intent.Msg, body.String()), nil
 }
 
 func init() {

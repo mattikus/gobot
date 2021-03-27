@@ -80,13 +80,19 @@ func (sl *Slack) Listen(ctx context.Context) (<-chan snowman.Msg, error) {
 }
 
 func (sl *Slack) Say(ctx context.Context, user snowman.User, msg snowman.Msg) error {
-	if smsg, ok := msg.Attribs["slack_msg"].(*slackevents.MessageEvent); ok {
-		err := sl.SendMessage(msg.Body, smsg)
-		if err != nil {
-			sl.Warnf("unable to send reply: %v", err)
-		}
+	channel, ok := msg.Attribs["slack_channel"].(string)
+	if !ok {
+		sl.Warnf("unable to get channel from context")
+		return nil
 	}
-	return nil
+	blocks := msg.Attribs["slack_blocks"].([]slack.Block)
+	opts := []slack.MsgOption{
+		slack.MsgOptionAsUser(true),
+		slack.MsgOptionText(msg.Body, false),
+		slack.MsgOptionBlocks(blocks...),
+	}
+	_, _, err := sl.client.PostMessage(channel, opts...)
+	return err
 }
 
 func (sl *Slack) listenForEvents(ctx context.Context, out chan<- snowman.Msg) {
@@ -206,21 +212,6 @@ func (sl *Slack) stripSelf(ev *slackevents.MessageEvent) bool {
 
 	ev.Text = matches[2]
 	return matches[1] != ""
-}
-
-// SendMessage sends the text as message to the given channel on behalf of
-// the bot instance.
-func (sl *Slack) SendMessage(text string, responseTo *slackevents.MessageEvent) error {
-	opts := []slack.MsgOption{
-		slack.MsgOptionAsUser(true),
-		slack.MsgOptionText(text, false),
-	}
-
-	if responseTo.ThreadTimeStamp != "" {
-		opts = append(opts, slack.MsgOptionTS(responseTo.ThreadTimeStamp))
-	}
-	_, _, err := sl.client.PostMessage(responseTo.Channel, opts...)
-	return err
 }
 
 // Self returns details about the currently connected bot user.

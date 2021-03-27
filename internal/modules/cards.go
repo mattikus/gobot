@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/slack-go/slack"
 	"github.com/spy16/snowman"
 )
 
@@ -48,7 +49,7 @@ func fetchBlack(_ context.Context, intent snowman.Intent) (snowman.Msg, error) {
 		msg = fmt.Sprintf("*(Pick %v)* %v", card.Pick, msg)
 	}
 
-	return snowman.Msg{Body: msg, Attribs: intent.Msg.Attribs}, nil
+	return NewMsg(intent.Msg, msg), nil
 }
 
 func fetchWhite(_ context.Context, intent snowman.Intent) (snowman.Msg, error) {
@@ -60,11 +61,18 @@ func fetchWhite(_ context.Context, intent snowman.Intent) (snowman.Msg, error) {
 			return snowman.Msg{}, err
 		}
 	}
+	cards := cardData.whiteCard(count)
+	var blocks []slack.Block
+	for idx, c := range cards {
+		prefix := ""
+		if len(cards) > 1 {
+			prefix = fmt.Sprintf("*%v.* ", idx+1)
+		}
+		msg := prefix + c
+		blocks = append(blocks, slack.NewSectionBlock(slack.NewTextBlockObject("mrkdwn", msg, false, false), nil, nil))
+	}
 
-	return snowman.Msg{
-		Body:    strings.Join(cardData.whiteCard(count), "\n"),
-		Attribs: intent.Msg.Attribs,
-	}, nil
+	return NewMsg(intent.Msg, strings.Join(cards, "\n"), blocks...), nil
 }
 
 func init() {

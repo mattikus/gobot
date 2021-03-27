@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 
+	"github.com/slack-go/slack"
 	"github.com/spy16/snowman"
 )
 
@@ -44,9 +45,13 @@ func randImg() string {
 
 func init() {
 	Reply(`baseball(?: me)?`, "baseball.player", func(_ context.Context, intent snowman.Intent) (snowman.Msg, error) {
-		return snowman.Msg{
-			Body:    fmt.Sprintf(">*Player*: %v\n%v", randPlayer(), randImg()),
-			Attribs: intent.Msg.Attribs,
-		}, nil
+		player := fmt.Sprintf(">*Player:* %v", randPlayer())
+		img := randImg()
+		body := fmt.Sprintf("%v\n%v", player, img)
+		return NewMsg(intent.Msg, body,
+			slack.NewImageBlock(img, player, "", nil),
+			slack.NewSectionBlock(
+				slack.NewTextBlockObject(slack.MarkdownType, player, false, false), nil, nil),
+		), nil
 	})
 }

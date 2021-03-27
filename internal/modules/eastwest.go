@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/slack-go/slack"
 	"github.com/spy16/snowman"
 )
 
@@ -77,15 +78,13 @@ func fetchPlayer(_ context.Context, intent snowman.Intent) (snowman.Msg, error) 
 		p = bowlData.RandPlayer()
 	}
 
-	// TODO(mattikus): Figure out a way to send this data natively using blocks.
-	body := fmt.Sprintf(`
-*Name:* %v
-*College:* %v
-%v`, p.Name, p.College, p.Image)
-	return snowman.Msg{
-		Body:    body,
-		Attribs: intent.Msg.Attribs,
-	}, nil
+	body := fmt.Sprintf("*Name:* %v\n*College:* %v\n %v", p.Name, p.College, p.Image)
+	return NewMsg(intent.Msg, body,
+		slack.NewImageBlock(p.Image, p.Name, "", nil),
+		slack.NewSectionBlock(nil, []*slack.TextBlockObject{
+			slack.NewTextBlockObject(slack.MarkdownType, ">>>*Name:*\n"+p.Name, false, false),
+			slack.NewTextBlockObject(slack.MarkdownType, ">>>*College:*\n"+p.College, false, false),
+		}, nil)), nil
 }
 
 func init() {

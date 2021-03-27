@@ -23,10 +23,7 @@ func (e emojiList) rand(count int) []string {
 
 // Random implements a snowman.ProcessorFunc which returns a random emoji from the emojiList.
 func (e emojiList) Random(_ context.Context, intent snowman.Intent) (snowman.Msg, error) {
-	return snowman.Msg{
-		Body:    fmt.Sprintf(":%v:", e.rand(1)[0]),
-		Attribs: intent.Msg.Attribs,
-	}, nil
+	return NewMsg(intent.Msg, fmt.Sprintf(":%v:", e.rand(1)[0])), nil
 }
 
 // Spin implements a snowman.ProcessorFunc which plays a little gambling game, creating a subset of
@@ -50,10 +47,7 @@ func (e emojiList) Spin(_ context.Context, intent snowman.Intent) (snowman.Msg, 
 	} else {
 		msg += " : You lose! Good day, sir!"
 	}
-	return snowman.Msg{
-		Body:    msg,
-		Attribs: intent.Msg.Attribs,
-	}, nil
+	return NewMsg(intent.Msg, msg), nil
 }
 
 func init() {

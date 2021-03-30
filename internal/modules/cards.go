@@ -48,8 +48,8 @@ func fetchBlack(_ context.Context, intent snowman.Intent) (snowman.Msg, error) {
 	if card.Pick > 1 {
 		msg = fmt.Sprintf("*(Pick %v)* %v", card.Pick, msg)
 	}
-
-	return NewMsg(intent.Msg, msg), nil
+	block := slack.NewSectionBlock(slack.NewTextBlockObject(slack.MarkdownType, msg, false, false), nil, nil)
+	return NewMsg(intent.Msg, msg, block), nil
 }
 
 func fetchWhite(_ context.Context, intent snowman.Intent) (snowman.Msg, error) {
@@ -64,12 +64,13 @@ func fetchWhite(_ context.Context, intent snowman.Intent) (snowman.Msg, error) {
 	cards := cardData.whiteCard(count)
 	var blocks []slack.Block
 	for idx, c := range cards {
-		prefix := ""
+		msg := ""
 		if len(cards) > 1 {
-			prefix = fmt.Sprintf("*%v.* ", idx+1)
+			msg += fmt.Sprintf("*%v.* ", idx+1)
 		}
-		msg := prefix + c
-		blocks = append(blocks, slack.NewSectionBlock(slack.NewTextBlockObject("mrkdwn", msg, false, false), nil, nil))
+		msg += c
+		block := slack.NewSectionBlock(slack.NewTextBlockObject(slack.MarkdownType, msg, false, false), nil, nil)
+		blocks = append(blocks, block)
 	}
 
 	return NewMsg(intent.Msg, strings.Join(cards, "\n"), blocks...), nil
